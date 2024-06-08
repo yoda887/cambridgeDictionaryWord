@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
+from urllib.parse import urljoin
 
 def fetch_webpage(url):
     """Fetch the webpage content with retries and timeout."""
@@ -32,7 +33,7 @@ def fetch_webpage(url):
         print(f"Error fetching the webpage: {e}")
         return None
 
-def parse_webpage(content):
+def parse_webpage(content, base_url):
     """Parse the webpage content and extract information."""
     soup = BeautifulSoup(content, 'html.parser')
 
@@ -45,18 +46,31 @@ def parse_webpage(content):
     # Extract the pronunciation
     pronunciation = soup.find('span', class_='pron dpron').text.strip() if soup.find('span', class_='pron dpron') else 'N/A'
 
-    # Extract the definition
-    definition = soup.find('div', class_='def ddef_d db').text.strip() if soup.find('div', class_='def ddef_d db') else 'N/A'
+    # Extract the pronunciation sound file links
+    audio_tag = soup.find('audio', class_='hdn')
+    if audio_tag:
+        sources = audio_tag.find_all('source')
+        sound_files = [urljoin(base_url, source['src']) for source in sources]
+    else:
+        sound_files = []
 
-    # Extract examples
-    examples = [ex.text.strip() for ex in soup.find_all('div', class_='examp dexamp')]
+    # Extract definitions and their examples
+    definitions = []
+    definition_blocks = soup.find_all('div', class_='def-block ddef_block')
+    for block in definition_blocks:
+        definition_text = block.find('div', class_='def ddef_d db').text.strip() if block.find('div', class_='def ddef_d db') else 'N/A'
+        example_texts = [ex.text.strip() for ex in block.find_all('div', class_='examp dexamp')]
+        definitions.append({
+            'definition': definition_text,
+            'examples': example_texts
+        })
 
     return {
         'word': word,
         'part_of_speech': part_of_speech,
         'pronunciation': pronunciation,
-        'definition': definition,
-        'examples': examples
+        'sound_files': sound_files,
+        'definitions': definitions
     }
 
 def display_results(results):
@@ -64,17 +78,23 @@ def display_results(results):
     print(f"Word: {results['word']}")
     print(f"Part of Speech: {results['part_of_speech']}")
     print(f"Pronunciation: {results['pronunciation']}")
-    print(f"Definition: {results['definition']}")
-    print("Examples:")
-    for example in results['examples']:
-        print(f"- {example}")
+    print("Pronunciation Sound Files:")
+    for sound_file in results['sound_files']:
+        print(f"- {sound_file}")
+    print("Definitions and Examples:")
+    for idx, definition in enumerate(results['definitions'], start=1):
+        print(f"Definition {idx}: {definition['definition']}")
+        print("Examples:")
+        for example in definition['examples']:
+            print(f"- {example}")
 
 def main():
     """Main function to run the script."""
     url = "https://dictionary.cambridge.org/dictionary/english/abide"
+    base_url = "https://dictionary.cambridge.org"
     webpage_content = fetch_webpage(url)
     if webpage_content:
-        results = parse_webpage(webpage_content)
+        results = parse_webpage(webpage_content, base_url)
         display_results(results)
 
 if __name__ == "__main__":
