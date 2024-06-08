@@ -44,10 +44,11 @@ def parse_webpage(content, base_url):
 
     # Extract the pronunciation
     pronunciation = soup.find('span', class_='pron dpron').text.strip() if soup.find('span', class_='pron dpron') else 'N/A'
+    pronunciation = pronunciation.replace('/', '')  # Remove "/"
 
     # Extract the pronunciation sound file links
     audio_tag = soup.find('audio', class_='hdn')
-    if audio_tag:
+    if (audio_tag):
         sources = audio_tag.find_all('source')
         sound_files = [urljoin(base_url, source['src']) for source in sources]
     else:
@@ -58,7 +59,15 @@ def parse_webpage(content, base_url):
 
     results = []
     for entry in entries:
-        part_of_speech = entry.find('span', class_='pos dpos').text if entry.find('span', class_='pos dpos') else 'N/A'
+        # part_of_speech = entry.find('span', class_='pos dpos').text if entry.find('span', class_='pos dpos') else
+        # 'N/A'
+        part_of_speech = entry.find('span', class_='pos dpos').text if entry.find('span', class_='pos dpos') else ''
+
+        # if entry.find('span', class_='pos dpos'):
+        #     part_of_speech = entry.find('span', class_='pos dpos').text
+        # else:
+        #     part_of_speech = ''  # Do nothing (part_of_speech will be an empty string)
+
         sense_blocks = entry.find_all('div', class_='sense-body dsense_b')
 
         for sense in sense_blocks:
@@ -85,7 +94,7 @@ def parse_webpage(content, base_url):
     }
 
 
-def format_anki(results):
+def format_anki(results, start_id):
     """Format the extracted results into Anki note format."""
     word = results['word']
     pronunciation = results['pronunciation']
@@ -93,12 +102,18 @@ def format_anki(results):
 
     definitions = []
     examples = []
-    parts_of_speech = set()
+    # parts_of_speech = set()
+    parts_of_speech = []
     counter = 1
 
     for entry in entries:
+        # part_of_speech = entry['part_of_speech']
+        # parts_of_speech.add(part_of_speech)
+
         part_of_speech = entry['part_of_speech']
-        parts_of_speech.add(part_of_speech)
+        if not parts_of_speech or parts_of_speech[-1] != part_of_speech:
+            parts_of_speech.append(part_of_speech)
+
         subheading = f" ({entry['subheading']})" if entry['subheading'] else ''
         definitions.append(f"{counter}. {part_of_speech}{subheading}: {entry['definition']}")
         if entry['examples']:  # Check if there are examples
@@ -108,7 +123,8 @@ def format_anki(results):
 
     definitions_text = "<br>".join(definitions)
     examples_text = "<br>".join(examples)
-    parts_of_speech_text = ", ".join(parts_of_speech)
+    # parts_of_speech_text = ", ".join(parts_of_speech)
+    parts_of_speech_text = ", ".join(filter(None, parts_of_speech))  # Skip empty parts of speech
 
     # Placeholder values for translation, image, and sound link
     translation = " "
@@ -119,7 +135,10 @@ def format_anki(results):
     sound_link = results['sound_files'][0] if results['sound_files'] else ''
     sound_link = f"[sound:{sound_link}]"
 
-    anki_note = f"{word}\t{pronunciation}\t{parts_of_speech_text}\t{definitions_text}\t{examples_text}\t{translation}\t{image}\t{sound_link}"
+    # Generate the ID
+    id_text = f"MY_ENG_{start_id:04d}"
+
+    anki_note = f" {id_text}\t{word}\t{pronunciation}\t{parts_of_speech_text}\t{definitions_text}\t{examples_text}\t{translation}\t{image}\t{sound_link}"
     return anki_note
 
 
@@ -127,10 +146,11 @@ def main():
     """Main function to run the script."""
     url = "https://dictionary.cambridge.org/dictionary/learner-english/shot"
     base_url = "https://dictionary.cambridge.org"
+    start_id = int(input("Enter the starting ID number: "))
     webpage_content = fetch_webpage(url)
     if webpage_content:
         results = parse_webpage(webpage_content, base_url)
-        anki_note = format_anki(results)
+        anki_note = format_anki(results, start_id)
         print(anki_note)
 
 
