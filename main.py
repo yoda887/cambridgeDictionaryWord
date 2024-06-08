@@ -67,8 +67,11 @@ def parse_webpage(content, base_url):
             definition_blocks = sense.find_all('div', class_='def-block ddef_block')
 
             for block in definition_blocks:
-                definition_text = block.find('div', class_='def ddef_d db').text.strip() if block.find('div',
-                                                                                                       class_='def ddef_d db') else 'N/A'
+
+                # definition_text = block.find('div', class_='def ddef_d db').text.strip() if block.find('div',
+                #                                                                                        class_='def ddef_d db') else ''
+                definition_text = block.find('div', class_='def ddef_d db').text.strip()[:-1] if block.find('div',
+                                                                                                            class_='def ddef_d db') else ''
                 example_texts = [ex.text.strip() for ex in block.find_all('div', class_='examp dexamp')]
                 results.append({
                     'part_of_speech': part_of_speech,
