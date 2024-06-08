@@ -141,6 +141,12 @@ def main():
         webpage_content = fetch_webpage(url)
         if webpage_content:
             results = parse_webpage(webpage_content, base_url)
+            if results['word'] == 'N/A':
+                # Try the main Cambridge Dictionary site if not found in the learner dictionary
+                url = f"https://dictionary.cambridge.org/dictionary/english/{word}"
+                webpage_content = fetch_webpage(url)
+                if webpage_content:
+                    results = parse_webpage(webpage_content, base_url)
             if results['word'] != 'N/A':
                 anki_note = format_anki(results, start_id)
                 print(anki_note)
