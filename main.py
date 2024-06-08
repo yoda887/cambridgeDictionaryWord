@@ -40,12 +40,6 @@ def parse_webpage(content, base_url):
     # Extract the word
     word = soup.find('span', class_='hw dhw').text if soup.find('span', class_='hw dhw') else 'N/A'
 
-    # Extract the part of speech
-    part_of_speech = soup.find('span', class_='pos dpos').text if soup.find('span', class_='pos dpos') else 'N/A'
-
-    # Extract the pronunciation
-    pronunciation = soup.find('span', class_='pron dpron').text.strip() if soup.find('span', class_='pron dpron') else 'N/A'
-
     # Extract the pronunciation sound file links
     audio_tag = soup.find('audio', class_='hdn')
     if audio_tag:
@@ -54,43 +48,52 @@ def parse_webpage(content, base_url):
     else:
         sound_files = []
 
-    # Extract definitions and their examples
-    definitions = []
-    definition_blocks = soup.find_all('div', class_='def-block ddef_block')
-    for block in definition_blocks:
-        definition_text = block.find('div', class_='def ddef_d db').text.strip() if block.find('div', class_='def ddef_d db') else 'N/A'
-        example_texts = [ex.text.strip() for ex in block.find_all('div', class_='examp dexamp')]
-        definitions.append({
-            'definition': definition_text,
-            'examples': example_texts
-        })
+    # Extract parts of speech, definitions, examples, and subheadings
+    entries = soup.find_all('div', class_='pr entry-body__el')
+
+    results = []
+    for entry in entries:
+        part_of_speech = entry.find('span', class_='pos dpos').text if entry.find('span', class_='pos dpos') else 'N/A'
+        sense_blocks = entry.find_all('div', class_='sense-body dsense_b')
+
+        for sense in sense_blocks:
+            subheading = sense.find('span', class_='dsense-title dsense-title--collocation').text.strip() if sense.find('span', class_='dsense-title dsense-title--collocation') else 'N/A'
+            definition_blocks = sense.find_all('div', class_='def-block ddef_block')
+
+            for block in definition_blocks:
+                definition_text = block.find('div', class_='def ddef_d db').text.strip() if block.find('div', class_='def ddef_d db') else 'N/A'
+                example_texts = [ex.text.strip() for ex in block.find_all('div', class_='examp dexamp')]
+                results.append({
+                    'part_of_speech': part_of_speech,
+                    'subheading': subheading,
+                    'definition': definition_text,
+                    'examples': example_texts
+                })
 
     return {
         'word': word,
-        'part_of_speech': part_of_speech,
-        'pronunciation': pronunciation,
         'sound_files': sound_files,
-        'definitions': definitions
+        'entries': results
     }
 
 def display_results(results):
     """Display the extracted results."""
     print(f"Word: {results['word']}")
-    print(f"Part of Speech: {results['part_of_speech']}")
-    print(f"Pronunciation: {results['pronunciation']}")
     print("Pronunciation Sound Files:")
     for sound_file in results['sound_files']:
         print(f"- {sound_file}")
-    print("Definitions and Examples:")
-    for idx, definition in enumerate(results['definitions'], start=1):
-        print(f"Definition {idx}: {definition['definition']}")
+    print("Entries:")
+    for idx, entry in enumerate(results['entries'], start=1):
+        print(f"Part of Speech: {entry['part_of_speech']}")
+        print(f"Subheading: {entry['subheading']}")
+        print(f"Definition {idx}: {entry['definition']}")
         print("Examples:")
-        for example in definition['examples']:
+        for example in entry['examples']:
             print(f"- {example}")
 
 def main():
     """Main function to run the script."""
-    url = "https://dictionary.cambridge.org/dictionary/english/abide"
+    url = "https://dictionary.cambridge.org/dictionary/learner-english/treat"
     base_url = "https://dictionary.cambridge.org"
     webpage_content = fetch_webpage(url)
     if webpage_content:
