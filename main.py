@@ -137,6 +137,7 @@ def main():
 
     for word in words:
         word = word.strip()
+        # Try the Learner Cambridge Dictionary site
         url = f"https://dictionary.cambridge.org/dictionary/learner-english/{word}"
         webpage_content = fetch_webpage(url)
         if webpage_content:
