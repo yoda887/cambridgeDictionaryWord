@@ -130,15 +130,27 @@ def main():
     words = input("Enter words separated by commas: ").split(',')
     start_id = int(input("Enter the starting ID number: "))
 
+    not_found_words = []
+
     for word in words:
         word = word.strip()
         url = f"https://dictionary.cambridge.org/dictionary/learner-english/{word}"
         webpage_content = fetch_webpage(url)
         if webpage_content:
             results = parse_webpage(webpage_content, base_url)
-            anki_note = format_anki(results, start_id)
-            print(anki_note)
-            start_id += 1
+            if results['word'] != 'N/A':
+                anki_note = format_anki(results, start_id)
+                print(anki_note)
+                start_id += 1
+            else:
+                not_found_words.append(word)
+        else:
+            not_found_words.append(word)
+
+    if not_found_words:
+        print("The following words were not found:")
+        for word in not_found_words:
+            print(word)
 
 if __name__ == "__main__":
     main()
