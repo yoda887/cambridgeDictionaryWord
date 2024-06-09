@@ -7,6 +7,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 from urllib.parse import urljoin
 
+
 def fetch_webpage(url):
     """Fetch the webpage content with retries and timeout."""
     headers = {
@@ -33,6 +34,7 @@ def fetch_webpage(url):
         print(f"Error fetching the webpage: {e}")
         return None
 
+
 def parse_webpage(content, base_url):
     """Parse the webpage content and extract information."""
     soup = BeautifulSoup(content, 'html.parser')
@@ -41,7 +43,8 @@ def parse_webpage(content, base_url):
     word = soup.find('span', class_='hw dhw').text if soup.find('span', class_='hw dhw') else 'N/A'
 
     # Extract the pronunciation
-    pronunciation = soup.find('span', class_='pron dpron').text.strip() if soup.find('span', class_='pron dpron') else 'N/A'
+    pronunciation = soup.find('span', class_='pron dpron').text.strip() if soup.find('span',
+                                                                                     class_='pron dpron') else 'N/A'
     pronunciation = pronunciation.replace('/', '')  # Remove "/"
 
     # Extract the pronunciation sound file links
@@ -67,7 +70,6 @@ def parse_webpage(content, base_url):
             definition_blocks = sense.find_all('div', class_='def-block ddef_block')
 
             for block in definition_blocks:
-
                 # definition_text = block.find('div', class_='def ddef_d db').text.strip() if block.find('div',
                 #                                                                                        class_='def ddef_d db') else ''
                 definition_text = block.find('div', class_='def ddef_d db').text.strip()[:-1] if block.find('div',
@@ -86,6 +88,7 @@ def parse_webpage(content, base_url):
         'sound_files': sound_files,
         'entries': results
     }
+
 
 def format_anki(results, start_id):
     """Format the extracted results into Anki note format."""
@@ -127,6 +130,7 @@ def format_anki(results, start_id):
     anki_note = f" {id_text}\t{word}\t{pronunciation}\t{parts_of_speech_text}\t{definitions_text}\t{examples_text}\t{translation}\t{image}\t{sound_link}"
     return anki_note
 
+
 def main():
     """Main function to run the script."""
     base_url = "https://dictionary.cambridge.org"
@@ -161,6 +165,7 @@ def main():
         print("The following words were not found:")
         for word in not_found_words:
             print(word)
+
 
 if __name__ == "__main__":
     main()
