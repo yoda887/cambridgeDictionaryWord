@@ -7,6 +7,9 @@ from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 from urllib.parse import urljoin
 import os
+from tkinter import Tk
+from tkinter.filedialog import askdirectory
+
 
 def fetch_webpage(url):
     """Fetch the webpage content with retries and timeout."""
@@ -32,11 +35,13 @@ def fetch_webpage(url):
         print(f"Error fetching the webpage: {e}")
         return None
 
+
 def parse_webpage(content, base_url):
     """Parse the webpage content and extract information."""
     soup = BeautifulSoup(content, 'html.parser')
     word = soup.find('span', class_='hw dhw').text if soup.find('span', class_='hw dhw') else 'N/A'
-    pronunciation = soup.find('span', class_='pron dpron').text.strip() if soup.find('span', class_='pron dpron') else 'N/A'
+    pronunciation = soup.find('span', class_='pron dpron').text.strip() if soup.find('span',
+                                                                                     class_='pron dpron') else 'N/A'
     pronunciation = pronunciation.replace('/', '')
     audio_tag = soup.find('audio', class_='hdn')
     sound_files = [urljoin(base_url, source['src']) for source in audio_tag.find_all('source')] if audio_tag else []
@@ -46,10 +51,12 @@ def parse_webpage(content, base_url):
         part_of_speech = entry.find('span', class_='pos dpos').text if entry.find('span', class_='pos dpos') else ''
         sense_blocks = entry.find_all('div', class_='sense-body dsense_b')
         for sense in sense_blocks:
-            subheading = sense.find('span', class_='dsense-title dsense-title--collocation').text.strip() if sense.find('span', class_='dsense-title dsense-title--collocation') else ''
+            subheading = sense.find('span', class_='dsense-title dsense-title--collocation').text.strip() if sense.find(
+                'span', class_='dsense-title dsense-title--collocation') else ''
             definition_blocks = sense.find_all('div', class_='def-block ddef_block')
             for block in definition_blocks:
-                definition_text = block.find('div', class_='def ddef_d db').text.strip()[:-1] if block.find('div', class_='def ddef_d db') else ''
+                definition_text = block.find('div', class_='def ddef_d db').text.strip()[:-1] if block.find('div',
+                                                                                                            class_='def ddef_d db') else ''
                 example_texts = [ex.text.strip() for ex in block.find_all('div', class_='examp dexamp')]
                 results.append({
                     'part_of_speech': part_of_speech,
@@ -63,6 +70,7 @@ def parse_webpage(content, base_url):
         'sound_files': sound_files,
         'entries': results
     }
+
 
 def format_anki(results, start_id):
     """Format the extracted results into Anki note format."""
@@ -94,11 +102,26 @@ def format_anki(results, start_id):
     anki_note = f"{id_text}\t{word}\t{pronunciation}\t{parts_of_speech_text}\t{definitions_text}\t{examples_text}\t{translation}\t{image}\t{sound_link}"
     return anki_note
 
+
 def main():
     """Main function to run the script."""
     base_url = "https://dictionary.cambridge.org"
     words = input("Enter words separated by commas: ").split(',')
     start_id = int(input("Enter the starting ID number: "))
+
+    # Use tkinter to open a directory chooser dialog
+    root = Tk()
+    root.withdraw()  # Hide the root window
+    save_directory = askdirectory(title="Select Directory to Save File")
+
+    if not save_directory:
+        print("No directory selected. Exiting.")
+        return
+
+    if not os.path.exists(save_directory):
+        print(f"Directory {save_directory} does not exist. Creating it.")
+        os.makedirs(save_directory)
+
     not_found_words = []
     anki_notes = []
     for word in words:
@@ -126,13 +149,15 @@ def main():
         for word in not_found_words:
             print(word)
     if anki_notes:
-        with open('anki_notes.txt', 'w', encoding='utf-8') as file:
+        save_path = os.path.join(save_directory, 'anki_notes.txt')
+        with open(save_path, 'w', encoding='utf-8') as file:
             file.write("#separator:tab\n")
             file.write("#html:true\n")
             file.write("#tags column:11\n")
             for note in anki_notes:
                 file.write(note + "\n")
-        print(f"File saved at: {os.path.abspath('anki_notes.txt')}")
+        print(f"File saved at: {os.path.abspath(save_path)}")
+
 
 if __name__ == "__main__":
     main()
