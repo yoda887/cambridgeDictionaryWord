@@ -55,8 +55,14 @@ def parse_webpage(content, base_url):
                 'span', class_='dsense-title dsense-title--collocation') else ''
             definition_blocks = sense.find_all('div', class_='def-block ddef_block')
             for block in definition_blocks:
-                definition_text = block.find('div', class_='def ddef_d db').text.strip()[:-1] if block.find('div',
-                                                                                                            class_='def ddef_d db') else ''
+                # definition_text = block.find('div', class_='def ddef_d db').text.strip()[:-1] if block.find('div',
+                # class_='def ddef_d db') else ''
+
+                definition_text = block.find('div', class_='def ddef_d db').text.strip() if block.find('div',
+                                                                                                       class_='def ddef_d db') else ''
+                if definition_text.endswith(":"):
+                    definition_text = definition_text[:-1]
+
                 example_texts = [ex.text.strip() for ex in block.find_all('div', class_='examp dexamp')]
                 results.append({
                     'part_of_speech': part_of_speech,
@@ -86,7 +92,9 @@ def format_anki(results, start_id):
         if not parts_of_speech or parts_of_speech[-1] != part_of_speech:
             parts_of_speech.append(part_of_speech)
         subheading = f" ({entry['subheading']})" if entry['subheading'] else ''
-        definitions.append(f"{counter}. {part_of_speech}{subheading}: {entry['definition']}")
+        # definitions.append(f"{counter}. {part_of_speech}{subheading}: {entry['definition']}")
+        definitions.append(f"{counter}. <span class=\"def-com\">{part_of_speech}{subheading}</span> {entry['definition']}")
+
         if entry['examples']:
             for example in entry['examples']:
                 examples.append(f"{counter}. {example}")
@@ -155,7 +163,7 @@ def main():
             file.write("#html:true\n")
             file.write("#tags column:11\n")
             for note in anki_notes:
-                file.write(note + "\n")
+                file.write(" " + note + "\n")
         print(f"File saved at: {os.path.abspath(save_path)}")
 
 
