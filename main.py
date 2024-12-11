@@ -1,5 +1,7 @@
 # Install the necessary libraries
 # pip install requests beautifulsoup4
+#  pip install groq
+# pip install googletrans==4.0.0-rc1
 
 import requests
 from bs4 import BeautifulSoup
@@ -9,6 +11,63 @@ from urllib.parse import urljoin
 import os
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
+import os
+from groq import Groq
+from collections import defaultdict
+import json
+# from googletrans import Translator
+from translate import Translator
+
+os.environ["GROQ_API_KEY"] = "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"
+
+
+def select_main_word(main_word, text):
+    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    prompt = (
+        f" In text surround the main_word by <span class=headword-example>."
+        "Text: I think the vacation is okay."
+        "Main word: vacation."
+        "Result:  I think the <span class=headword-example> vacation </span> is okay."
+        f"Text: {text}"
+        f"Main word: {main_word}."
+        "Result: "
+        # "Don't display - Here is the revised sentence:"
+        # "Display only the modified sentence."
+        .strip()
+    )
+
+    try:
+        # Make a request to the Groq API for chat completion
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Always return only modified sentence.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            model="llama3-70b-8192",
+            response_format={"type": "text"},
+            temperature=0,
+        )
+
+        # Extract the summarized tasks from the response
+        summaries = chat_completion.choices[0].message.content
+        return summaries
+
+    except Exception as e:
+        # Handle any exceptions that may occur during the API call
+        print(f"An error occurred: {e}")
+        return None
+
+
+def translate_word(word):
+    translator = Translator(to_lang="ru")
+    translated_text = translator.translate(word)
+    return translated_text
 
 
 def fetch_webpage(url):
@@ -61,6 +120,7 @@ def parse_webpage(content, base_url):
                     definition_text = definition_text[:-1]
 
                 example_texts = [ex.text.strip() for ex in block.find_all('div', class_='examp dexamp')]
+
                 results.append({
                     'part_of_speech': part_of_speech,
                     'subheading': subheading,
@@ -88,18 +148,22 @@ def format_anki(results, start_id):
         part_of_speech = entry['part_of_speech']
         subheading = f" ({entry['subheading']})" if entry['subheading'] else ''
         if len(parts_of_speech) > 1:
-            definitions.append(f"{counter}. <span class=\"def-com\">{part_of_speech}{subheading}</span> {entry['definition']}")
+            definitions.append(
+                f"{counter}. <span class=\"def-com\">{part_of_speech}{subheading}</span> {entry['definition']}")
         else:
             definitions.append(f"{counter}. {entry['definition']}")
 
         if entry['examples']:
             for example in entry['examples']:
+                example = select_main_word(word, example)
                 examples.append(f"{counter}. {example}")
         counter += 1
     definitions_text = "<br>".join(definitions)
     examples_text = "<br>".join(examples)
+    # examples_text = select_main_word(word, examples_text)
     parts_of_speech_text = ", ".join(filter(None, parts_of_speech))
-    translation = " "
+    # translation = " "
+    translation = translate_word(word)
     image = " "
     sound_link = results['sound_files'][0] if results['sound_files'] else ''
     sound_link = f"[sound:{sound_link}]"
