@@ -15,14 +15,24 @@ import os
 from groq import Groq
 from collections import defaultdict
 import json
-# from googletrans import Translator
-from translate import Translator
+
+from googletrans import Translator
+# from translate import Translator
 
 os.environ["GROQ_API_KEY"] = "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"
 
 
 def select_main_word(main_word, text):
-    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    # client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    try:
+        client = Groq(
+            api_key=os.environ.get("GROQ_API_KEY"),
+        )
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return text
+
     prompt = (
         f" In text surround the main_word by <span class=headword-example>."
         "Text: I think the vacation is okay."
@@ -36,13 +46,16 @@ def select_main_word(main_word, text):
         .strip()
     )
 
+    # prompt = f" In text surround the main word by <span class=headword-example>."
+    # prompt += f"Text: {text}. Main word: {main_word}. Result: ".strip()
+
     try:
         # Make a request to the Groq API for chat completion
         chat_completion = client.chat.completions.create(
             messages=[
                 {
                     "role": "system",
-                    "content": "Always return only modified sentence.",
+                    "content": "Always return only modified sentence, only result.",
                 },
                 {
                     "role": "user",
@@ -65,9 +78,17 @@ def select_main_word(main_word, text):
 
 
 def translate_word(word):
-    translator = Translator(to_lang="ru")
-    translated_text = translator.translate(word)
-    return translated_text
+    # translator = Translator(to_lang="ru")
+    translator = Translator()
+    # translator = Translator(service_urls=['translate.googleapis.com'])
+    # translated_text = translator.translate(word)
+    # return translated_text
+    try:
+        translation = translator.translate(word, src='en', dest='ru')
+        return translation.text
+    except Exception as e:
+        print(f"Error in translation: {e}")
+        return "Translation Error"
 
 
 def fetch_webpage(url):
