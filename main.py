@@ -17,6 +17,7 @@ from collections import defaultdict
 import json
 
 from googletrans import Translator
+
 # from translate import Translator
 
 os.environ["GROQ_API_KEY"] = "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"
@@ -129,10 +130,15 @@ def parse_webpage(content, base_url):
     results = []
     for entry in entries:
         part_of_speech = entry.find('span', class_='pos dpos').text if entry.find('span', class_='pos dpos') else ''
-        sense_blocks = entry.find_all('div', class_='sense-body dsense_b')
+        # sense_blocks = entry.find_all('div', class_='pr dsense')
+        sense_blocks = entry.find_all('div', class_=lambda x: x and 'pr' in x and 'dsense' in x)
         for sense in sense_blocks:
             subheading = sense.find('span', class_='dsense-title dsense-title--collocation').text.strip() if sense.find(
                 'span', class_='dsense-title dsense-title--collocation') else ''
+            guide_word = sense.find('span', class_='guideword dsense_gw').text.strip() if sense.find('span',
+                                                                                                     class_='guideword dsense_gw') else ''
+            guide_phraze= sense.find('div', class_='phrase-head dphrase_h').text.strip() if sense.find('div',
+                                                                                                       class_='phrase-head dphrase_h') else ''
             definition_blocks = sense.find_all('div', class_='def-block ddef_block')
             for block in definition_blocks:
                 definition_text = block.find('div', class_='def ddef_d db').text.strip() if block.find('div',
@@ -145,6 +151,8 @@ def parse_webpage(content, base_url):
                 results.append({
                     'part_of_speech': part_of_speech,
                     'subheading': subheading,
+                    'guide_word': guide_word,
+                    'guide_phraze': guide_phraze,
                     'definition': definition_text,
                     'examples': example_texts
                 })
@@ -167,12 +175,17 @@ def format_anki(results, start_id):
     counter = 1
     for entry in entries:
         part_of_speech = entry['part_of_speech']
+        guide_word = f" ({entry['guide_word']})" if entry['guide_word'] else ''
+        guide_word = guide_word[2:-1]
+        guide_phraze = f" ({entry['guide_phraze']})" if entry['guide_phraze'] else ''
+        # print(guide_word)
         subheading = f" ({entry['subheading']})" if entry['subheading'] else ''
         if len(parts_of_speech) > 1:
             definitions.append(
-                f"{counter}. <span class=\"def-com\">{part_of_speech}{subheading}</span> {entry['definition']}")
+                f"{counter}. <span class=\"def-com\">{part_of_speech}{guide_word}{guide_phraze}{subheading}</span> {entry['definition']}")
         else:
-            definitions.append(f"{counter}. {entry['definition']}")
+            definitions.append(
+                f"{counter}. <span class=\"def-com\">{guide_word}{guide_phraze}{subheading}</span> {entry['definition']}")
 
         if entry['examples']:
             for example in entry['examples']:
